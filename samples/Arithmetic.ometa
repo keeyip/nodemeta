@@ -1,0 +1,12 @@
+ometa Numbers {
+  number     = decimal,
+  decimal    = <'-'?  decimalInt+ ('.' digit+)? expPart?>
+             | <'-'?              ('.' digit+)  expPart?>,
+  decimalInt = '0' | (~'0' digit) digit*,   
+  expPart    = ('e' | 'E') ('+' | '-')? digit+  
+}
+
+ometa Expression {
+    expression = <Numbers.number op Numbers.number>,
+    op = '+' | '-'
+}
