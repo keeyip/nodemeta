@@ -1,23 +1,27 @@
 {
-  "name": "nodemeta",
-  "version": "0.0.0",
-  "description": "Clean, up-to-date version of ometa-js for node",
-  "main": "generated/node-ometa-runtime.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [
-    "ometa"
-  ],
-  "author": "Kee-Yip Chan",
-  "license": "MIT",
-  "dependencies": {
-    "esprima": "~1.2.2",
-    "escodegen": "~1.3.3",
-    "estraverse": "~1.5.1",
-    "underscore": "~1.7.0"
-  },
-  "bin": {
-    "nodemeta": "./bin/nodemeta"
-  }
+    "name": "nodemeta",
+    "version": "0.0.1",
+    "description": "Bootstrappable version of ometa/JS for node",
+    "main": "generated/node-ometa-runtime.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "ometa"
+    ],
+    "author": "Kee-Yip Chan",
+    "license": "MIT",
+    "repository": {
+        "type" : "git",
+        "url" : "http://github.com/keeyip/nodemeta.git"
+    },
+    "dependencies": {
+        "esprima": "~1.2.2",
+        "escodegen": "~1.3.3",
+        "estraverse": "~1.5.1",
+        "underscore": "~1.7.0"
+    },
+    "bin": {
+        "nodemeta": "./bin/nodemeta"
+    }
 }
