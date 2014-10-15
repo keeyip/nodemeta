@@ -24,6 +24,7 @@ var grammarSrc = fs.readFileSync(filename, 'utf-8')
 
 var ast = esprima.parse(ometa.translate(grammarSrc))
 
+var ast_nodemeta_fail = expressionNode('nodemeta.fail')
 var ast_nodemeta_OMeta = expressionNode('nodemeta.OMeta')
 var ast_nodemeta_objectThatDelegatesTo = expressionNode('nodemeta.objectThatDelegatesTo')
 
@@ -45,10 +46,12 @@ function expressionNode(expr) {
 function outputWithExports(root) {
     var exportableNames = [];
     var cleanedAst = estraverse.replace(root, {
-        leave: function(node) {
+        leave: function(node, parent) {
             if (node.type !== 'Identifier') return
             
-            if (node.name === 'OMeta') {
+            if (node.name === 'fail' && parent.type !== 'MemberExpression') {
+                return ast_nodemeta_fail;
+            } if (node.name === 'OMeta') {
                 return ast_nodemeta_OMeta
             } else if (node.name === 'objectThatDelegatesTo') {
                 var assignment = this.parents().slice(-2)[0]
