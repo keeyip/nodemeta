@@ -1,3 +1,4 @@
-Parser = objectThatDelegatesTo(OMeta, {
+var Parser = objectThatDelegatesTo(OMeta, {
 })
+
 

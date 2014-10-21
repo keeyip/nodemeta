@@ -11,7 +11,7 @@ String.prototype.writeStream      = function() { return new StringBuffer(this) }
 
 // make Arrays print themselves sensibly
 
-printOn = function(x, ws) {
+var printOn = function(x, ws) {
   if (x === undefined || x === null)
     ws.nextPutAll("" + x)
   else if (x.constructor === Array) {
@@ -31,7 +31,7 @@ Array.prototype.toString = function() { var ws = "".writeStream(); printOn(this,
 
 // delegation
 
-objectThatDelegatesTo = function(x, props) {
+var objectThatDelegatesTo = function(x, props) {
   var f = function() { }
   f.prototype = x
   var r = new f()
@@ -43,7 +43,7 @@ objectThatDelegatesTo = function(x, props) {
 
 // some reflective stuff
 
-ownPropertyNames = function(x) {
+var ownPropertyNames = function(x) {
   var r = []
   for (var name in x)
     if (x.hasOwnProperty(name))
@@ -51,13 +51,13 @@ ownPropertyNames = function(x) {
   return r
 }
 
-isImmutable = function(x) {
+var isImmutable = function(x) {
    return x === null || x === undefined || typeof x === "boolean" || typeof x === "number" || typeof x === "string"
 }
 
 String.prototype.digitValue  = function() { return this.charCodeAt(0) - "0".charCodeAt(0) }
 
-isSequenceable = function(x) { return typeof x == "string" || x.constructor === Array }
+var isSequenceable = function(x) { return typeof x == "string" || x.constructor === Array }
 
 // some functional programming stuff
 
@@ -90,7 +90,7 @@ String.prototype.pad = function(s, len) {
   return r
 }
 
-escapeStringFor = new Object()
+var escapeStringFor = new Object()
 for (var c = 0; c < 128; c++)
   escapeStringFor[c] = String.fromCharCode(c)
 escapeStringFor["'".charCodeAt(0)]  = "\\'"
@@ -102,7 +102,7 @@ escapeStringFor["\n".charCodeAt(0)] = "\\n"
 escapeStringFor["\r".charCodeAt(0)] = "\\r"
 escapeStringFor["\t".charCodeAt(0)] = "\\t"
 escapeStringFor["\v".charCodeAt(0)] = "\\v"
-escapeChar = function(c) {
+var escapeChar = function(c) {
   var charCode = c.charCodeAt(0)
   if (charCode < 128)
     return escapeStringFor[charCode]
@@ -147,7 +147,7 @@ tempnam.n = 0
 
 // unique tags for objects (useful for making "hash tables")
 
-getTag = (function() {
+var getTag = (function() {
   var numIdx = 0
   return function(x) {
     if (x === null || x === undefined)
@@ -160,4 +160,5 @@ getTag = (function() {
     }
   }
 })()
+
 

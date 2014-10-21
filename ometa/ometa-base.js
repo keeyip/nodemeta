@@ -37,7 +37,7 @@ M.matchAll("123456789", "number")
 
 // the failure exception
 
-fail = { toString: function() { return "match failed" } }
+var fail = { toString: function() { return "match failed" } }
 
 // streams and memoization
 
@@ -104,7 +104,7 @@ Failer.prototype.used = false
 
 // the OMeta "class" and basic functionality
 
-OMeta = {
+var OMeta = {
   _apply: function(rule) {
     var memoRec = this.input.memo[rule]
     if (memoRec == undefined) {
@@ -499,3 +499,4 @@ OMeta = {
     return m
   }
 }
+
