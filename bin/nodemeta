@@ -54,9 +54,9 @@ function outputWithExports(root) {
             } if (node.name === 'OMeta') {
                 return ast_nodemeta_OMeta
             } else if (node.name === 'objectThatDelegatesTo') {
-                var assignment = this.parents().slice(-2)[0]
-                if (assignment.type === 'AssignmentExpression' && assignment.left.type === 'Identifier') {
-                    exportableNames.push(assignment.left.name)
+                var decl = this.parents().slice(-2)[0]
+                if (decl.type === 'VariableDeclarator') {
+                    exportableNames.push(decl.id.name)
                 }
                 return ast_nodemeta_objectThatDelegatesTo
             }

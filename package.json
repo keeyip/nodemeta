@@ -1,6 +1,6 @@
 {
     "name": "nodemeta",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Bootstrappable version of ometa/JS for node",
     "main": "generated/node-ometa-runtime.js",
     "scripts": {
