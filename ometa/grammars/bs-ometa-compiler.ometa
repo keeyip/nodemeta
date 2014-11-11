@@ -11,9 +11,9 @@ ometa BSOMetaParser {
                          | char                                   )>:s -> unescape(s)
                  | char,
   tsString       = '\'' (~'\'' eChar)*:xs '\''                         -> xs.join(''),
-  characters     = '`' '`' (~('\'' '\'') eChar)*:xs '\'' '\''          -> [#App, #seq,     xs.join('').toProgramString()],
-  sCharacters    = '"'     (~'"'         eChar)*:xs '"'                -> [#App, #token,   xs.join('').toProgramString()],
-  string         = (('#' | '`') tsName | tsString):xs                  -> [#App, #exactly, xs.toProgramString()],
+  characters     = '`' '`' (~('\'' '\'') eChar)*:xs '\'' '\''          -> [#App, #seq,     OMeta.toProgramString(xs.join(''))],
+  sCharacters    = '"'     (~'"'         eChar)*:xs '"'                -> [#App, #token,   OMeta.toProgramString(xs.join(''))],
+  string         = (('#' | '`') tsName | tsString):xs                  -> [#App, #exactly, OMeta.toProgramString(xs)],
   number         = <'-'? digit+>:n                                     -> [#App, #exactly, n],
   keyword :xs    = token(xs) ~letterOrDigit                            -> xs,
   args           = '(' listOf(#hostExpr, ','):xs ")"                   -> xs
@@ -88,7 +88,7 @@ ometa BSOMetaTranslator {
   Act        :expr                         -> expr,
   Pred       :expr                         -> ['this._pred(', expr, ')']                                           .join(''),
   Or         transFn*:xs                   -> ['this._or(',  xs.join(','), ')']                                    .join(''),
-  XOr        transFn*:xs                       {xs.unshift((this.name + "." + this.rName).toProgramString())}
+  XOr        transFn*:xs                       {xs.unshift(OMeta.toProgramString(this.name + "." + this.rName))}
                                            -> ['this._xor(', xs.join(','), ')']                                    .join(''),
   And        notLast(#trans)*:xs trans:y
              {xs.push('return ' + y)}      -> ['(function(){', xs.join(';'), '}).call(this)']                      .join(''),
@@ -111,8 +111,8 @@ ometa BSOMetaTranslator {
              {this.name = name}
              {this.sName = sName}
              trans*:rules                  -> ['var ', name, '=objectThatDelegatesTo(', sName, ',{', rules.join(','), '})'].join(''),
-  intPart  = [:mode transFn:part]          -> (mode.toProgramString()  + "," + part),
-  jtCase   = [:x trans:e]                  -> [x.toProgramString(), e],
+  intPart  = [:mode transFn:part]          -> (OMeta.toProgramString(mode)  + "," + part),
+  jtCase   = [:x trans:e]                  -> [OMeta.toProgramString(x), e],
   locals   = [string+:vs]                  -> ['var ', vs.join(','), ';']                                          .join('')
            | []                            -> '',
   trans    = [:t apply(t):ans]             -> ans,

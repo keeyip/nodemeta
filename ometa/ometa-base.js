@@ -12,8 +12,8 @@
 
 /*
 ometa M {
-  number = number:n digit:d -> { n * 10 + d.digitValue() }
-         | digit:d          -> { d.digitValue() }
+  number = number:n digit:d -> { n * 10 + digitValue(d) }
+         | digit:d          -> { digitValue(d) }
 }
 
 translates to...
@@ -23,11 +23,11 @@ M = objectThatDelegatesTo(OMeta, {
             return this._or(function() {
                               var n = this._apply("number"),
                                   d = this._apply("digit")
-                              return n * 10 + d.digitValue()
+                              return n * 10 + digitValue(d)
                             },
                             function() {
                               var d = this._apply("digit")
-                              return d.digitValue()
+                              return digitValue(d)
                             }
                            )
           }
@@ -69,15 +69,23 @@ OMInputStreamEnd.prototype = objectThatDelegatesTo(OMInputStream.prototype)
 OMInputStreamEnd.prototype.head = function() { throw fail }
 OMInputStreamEnd.prototype.tail = function() { throw fail }
 
-// This is necessary b/c in IE, you can't say "foo"[idx]
-Array.prototype.at  = function(idx) { return this[idx] }
-String.prototype.at = String.prototype.charAt
+function rest(list) {
+    return Array.prototype.slice.call(list, 1);
+}
+function at(list, i) {
+    if (typeof list === 'string') {
+        return list.charAt(i);
+    } else {
+        // Assume this is an array.
+        return list[i];
+    }
+}
 
 function ListOMInputStream(lst, idx) {
   this.memo = { }
   this.lst  = lst
   this.idx  = idx
-  this.hd   = lst.at(idx)
+  this.hd   = at(lst, idx)
 }
 ListOMInputStream.prototype = objectThatDelegatesTo(OMInputStream.prototype)
 ListOMInputStream.prototype.head = function() { return this.hd }
@@ -85,8 +93,9 @@ ListOMInputStream.prototype.tail = function() { return this.tl || (this.tl = mak
 
 function makeListOMInputStream(lst, idx) { return new (idx < lst.length ? ListOMInputStream : OMInputStreamEnd)(lst, idx) }
 
-Array.prototype.toOMInputStream  = function() { return makeListOMInputStream(this, 0) }
-String.prototype.toOMInputStream = function() { return makeListOMInputStream(this, 0) }
+function toOMInputStream(list) {
+    return makeListOMInputStream(list, 0);
+}
 
 function makeOMInputStreamProxy(target) {
   return objectThatDelegatesTo(target, {
@@ -276,7 +285,7 @@ var OMeta = {
     if (!isSequenceable(v))
       throw fail
     var origInput = this.input
-    this.input = v.toOMInputStream()
+    this.input = toOMInputStream(v)
     var r = x.call(this)
     this._apply("end")
     this.input = origInput
@@ -292,6 +301,15 @@ var OMeta = {
     x.call(this)
     return {fromIdx: origInput.idx, toIdx: this.input.idx}
   },
+
+  toProgramString: function(str) {
+    var ws = makeWriteStream('"')
+    for (var idx = 0; idx < str.length; idx++)
+      ws.nextPutAll(escapeChar(str.charAt(idx)))
+    ws.nextPutAll('"')
+    return ws.contents()
+  },
+
   _interleave: function(mode1, part1, mode2, part2 /* ..., moden, partn */) {
     var currInput = this.input, ans = []
     for (var idx = 0; idx < arguments.length; idx += 2)
@@ -425,7 +443,7 @@ var OMeta = {
   },
   seq: function(xs) {
     for (var idx = 0; idx < xs.length; idx++)
-      this._applyWithArgs("exactly", xs.at(idx))
+      this._applyWithArgs("exactly", at(xs, idx))
     return xs
   },
   notLast: function(rule) {
@@ -484,16 +502,16 @@ var OMeta = {
     }
   },
   match: function(obj, rule, args, matchFailed) {
-    return this._genericMatch([obj].toOMInputStream(),    rule, args, matchFailed)
+    return this._genericMatch(toOMInputStream([obj]),    rule, args, matchFailed)
   },
   matchAll: function(listyObj, rule, args, matchFailed) {
-    return this._genericMatch(listyObj.toOMInputStream(), rule, args, matchFailed)
+    return this._genericMatch(toOMInputStream(listyObj), rule, args, matchFailed)
   },
   createInstance: function() {
     var m = objectThatDelegatesTo(this)
     m.initialize()
     m.matchAll = function(listyObj, aRule) {
-      this.input = listyObj.toOMInputStream()
+      this.input = toOMInputStream(listyObj)
       return this._apply(aRule)
     }
     return m

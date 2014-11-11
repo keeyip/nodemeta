@@ -7,7 +7,9 @@ function StringBuffer() {
 }
 StringBuffer.prototype.nextPutAll = function(s) { this.strings.push(s) }
 StringBuffer.prototype.contents   = function()  { return this.strings.join("") }
-String.prototype.writeStream      = function() { return new StringBuffer(this) }
+function makeWriteStream(str) {
+    return new StringBuffer(str)
+}
 
 // make Arrays print themselves sensibly
 
@@ -26,8 +28,6 @@ var printOn = function(x, ws) {
   else
     ws.nextPutAll(x.toString())
 }
-
-Array.prototype.toString = function() { var ws = "".writeStream(); printOn(this, ws); return ws.contents() }
 
 // delegation
 
@@ -55,22 +55,7 @@ var isImmutable = function(x) {
    return x === null || x === undefined || typeof x === "boolean" || typeof x === "number" || typeof x === "string"
 }
 
-String.prototype.digitValue  = function() { return this.charCodeAt(0) - "0".charCodeAt(0) }
-
 var isSequenceable = function(x) { return typeof x == "string" || x.constructor === Array }
-
-// some functional programming stuff
-
-Array.prototype.delimWith = function(d) {
-  return this.reduce(
-    function(xs, x) {
-      if (xs.length > 0)
-        xs.push(d)
-      xs.push(x)
-      return xs
-    },
-   [])
-}
 
 // Squeak's ReadStream, kind of
 
@@ -79,12 +64,12 @@ function ReadStream(anArrayOrString) {
   this.pos = 0
 }
 ReadStream.prototype.atEnd = function() { return this.pos >= this.src.length }
-ReadStream.prototype.next  = function() { return this.src.at(this.pos++) }
+ReadStream.prototype.next  = function() { return at(this.src, this.pos++) }
 
 // escape characters
 
-String.prototype.pad = function(s, len) {
-  var r = this
+pad = function(str, s, len) {
+  var r = str
   while (r.length < len)
     r = s + r
   return r
@@ -102,14 +87,14 @@ escapeStringFor["\n".charCodeAt(0)] = "\\n"
 escapeStringFor["\r".charCodeAt(0)] = "\\r"
 escapeStringFor["\t".charCodeAt(0)] = "\\t"
 escapeStringFor["\v".charCodeAt(0)] = "\\v"
-var escapeChar = function(c) {
+function escapeChar(c) {
   var charCode = c.charCodeAt(0)
   if (charCode < 128)
     return escapeStringFor[charCode]
   else if (128 <= charCode && charCode < 256)
-    return "\\x" + charCode.toString(16).pad("0", 2)
+    return "\\x" + pad(charCode.toString(16), "0", 2)
   else
-    return "\\u" + charCode.toString(16).pad("0", 4)
+    return "\\u" + pad(charCode.toString(16), "0", 4)
 }
 
 function unescape(s) {
@@ -130,14 +115,6 @@ function unescape(s) {
     }
   else
     return s
-}
-
-String.prototype.toProgramString = function() {
-  var ws = '"'.writeStream()
-  for (var idx = 0; idx < this.length; idx++)
-    ws.nextPutAll(escapeChar(this.charAt(idx)))
-  ws.nextPutAll('"')
-  return ws.contents()
 }
 
 // C-style tempnam function
@@ -176,8 +153,8 @@ var getTag = (function() {
 
 /*
 ometa M {
-  number = number:n digit:d -> { n * 10 + d.digitValue() }
-         | digit:d          -> { d.digitValue() }
+  number = number:n digit:d -> { n * 10 + digitValue(d) }
+         | digit:d          -> { digitValue(d) }
 }
 
 translates to...
@@ -187,11 +164,11 @@ M = objectThatDelegatesTo(OMeta, {
             return this._or(function() {
                               var n = this._apply("number"),
                                   d = this._apply("digit")
-                              return n * 10 + d.digitValue()
+                              return n * 10 + digitValue(d)
                             },
                             function() {
                               var d = this._apply("digit")
-                              return d.digitValue()
+                              return digitValue(d)
                             }
                            )
           }
@@ -233,15 +210,23 @@ OMInputStreamEnd.prototype = objectThatDelegatesTo(OMInputStream.prototype)
 OMInputStreamEnd.prototype.head = function() { throw fail }
 OMInputStreamEnd.prototype.tail = function() { throw fail }
 
-// This is necessary b/c in IE, you can't say "foo"[idx]
-Array.prototype.at  = function(idx) { return this[idx] }
-String.prototype.at = String.prototype.charAt
+function rest(list) {
+    return Array.prototype.slice.call(list, 1);
+}
+function at(list, i) {
+    if (typeof list === 'string') {
+        return list.charAt(i);
+    } else {
+        // Assume this is an array.
+        return list[i];
+    }
+}
 
 function ListOMInputStream(lst, idx) {
   this.memo = { }
   this.lst  = lst
   this.idx  = idx
-  this.hd   = lst.at(idx)
+  this.hd   = at(lst, idx)
 }
 ListOMInputStream.prototype = objectThatDelegatesTo(OMInputStream.prototype)
 ListOMInputStream.prototype.head = function() { return this.hd }
@@ -249,8 +234,9 @@ ListOMInputStream.prototype.tail = function() { return this.tl || (this.tl = mak
 
 function makeListOMInputStream(lst, idx) { return new (idx < lst.length ? ListOMInputStream : OMInputStreamEnd)(lst, idx) }
 
-Array.prototype.toOMInputStream  = function() { return makeListOMInputStream(this, 0) }
-String.prototype.toOMInputStream = function() { return makeListOMInputStream(this, 0) }
+function toOMInputStream(list) {
+    return makeListOMInputStream(list, 0);
+}
 
 function makeOMInputStreamProxy(target) {
   return objectThatDelegatesTo(target, {
@@ -440,7 +426,7 @@ var OMeta = {
     if (!isSequenceable(v))
       throw fail
     var origInput = this.input
-    this.input = v.toOMInputStream()
+    this.input = toOMInputStream(v)
     var r = x.call(this)
     this._apply("end")
     this.input = origInput
@@ -456,6 +442,15 @@ var OMeta = {
     x.call(this)
     return {fromIdx: origInput.idx, toIdx: this.input.idx}
   },
+
+  toProgramString: function(str) {
+    var ws = makeWriteStream('"')
+    for (var idx = 0; idx < str.length; idx++)
+      ws.nextPutAll(escapeChar(str.charAt(idx)))
+    ws.nextPutAll('"')
+    return ws.contents()
+  },
+
   _interleave: function(mode1, part1, mode2, part2 /* ..., moden, partn */) {
     var currInput = this.input, ans = []
     for (var idx = 0; idx < arguments.length; idx += 2)
@@ -589,7 +584,7 @@ var OMeta = {
   },
   seq: function(xs) {
     for (var idx = 0; idx < xs.length; idx++)
-      this._applyWithArgs("exactly", xs.at(idx))
+      this._applyWithArgs("exactly", at(xs, idx))
     return xs
   },
   notLast: function(rule) {
@@ -648,16 +643,16 @@ var OMeta = {
     }
   },
   match: function(obj, rule, args, matchFailed) {
-    return this._genericMatch([obj].toOMInputStream(),    rule, args, matchFailed)
+    return this._genericMatch(toOMInputStream([obj]),    rule, args, matchFailed)
   },
   matchAll: function(listyObj, rule, args, matchFailed) {
-    return this._genericMatch(listyObj.toOMInputStream(), rule, args, matchFailed)
+    return this._genericMatch(toOMInputStream(listyObj), rule, args, matchFailed)
   },
   createInstance: function() {
     var m = objectThatDelegatesTo(this)
     m.initialize()
     m.matchAll = function(listyObj, aRule) {
-      this.input = listyObj.toOMInputStream()
+      this.input = toOMInputStream(listyObj)
       return this._apply(aRule)
     }
     return m
